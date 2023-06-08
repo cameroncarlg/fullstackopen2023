@@ -18,8 +18,22 @@ const removePerson = (id) => {
   });
 };
 
+const updatePerson = (newName, newNumber, id) => {
+  const request = axios.put(`${baseUrl}/${id}`, {
+    name: newName,
+    number: newNumber,
+    id: id,
+  });
+  return request
+    .then((response) => response.data)
+    .catch((err) => {
+      console.log(err);
+    });
+};
+
 export default {
   getAll,
   createPerson,
   removePerson,
+  updatePerson,
 };

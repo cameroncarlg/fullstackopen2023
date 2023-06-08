@@ -3,13 +3,16 @@ import Filter from './components/Filter';
 import Header from './components/Header';
 import PersonForm from './components/PersonForm';
 import Search from './components/Search';
+import Notification from './components/Notification';
 import personServices from './services/personServices';
+import './index.css';
 
 const App = () => {
   const [persons, setPersons] = useState([]);
   const [newName, setNewName] = useState('');
   const [newNumber, setNewNumber] = useState('');
   const [search, setSearch] = useState('');
+  const [errorMessage, setErrorMessage] = useState(null);
 
   useEffect(() => {
     personServices.getAll().then((initialPeople) => setPersons(initialPeople));
@@ -32,31 +35,61 @@ const App = () => {
   };
 
   const handleDelete = (name, id) => {
-    window.alert(`Delete ${name}?`);
-    personServices.removePerson(id).then((response) => {
-      console.log(response);
-    });
+    const deleteWindow = window.confirm(`Delete ${name}?`);
+    if (deleteWindow) {
+      personServices.removePerson(id).then(
+        personServices
+          .getAll()
+          .then((returnedPeople) => {
+            setPersons(returnedPeople);
+          })
+          .catch((error) => {
+            setErrorMessage(`${name} was already removed from the phonebook`);
+            setTimeout(() => {
+              setErrorMessage(null);
+            }, 5000);
+          })
+      );
+      setErrorMessage(`${name} was removed from the phonebook`);
+      setTimeout(() => {
+        setErrorMessage(null);
+      }, 5000);
+    }
   };
 
   const handleNameSubmit = (event) => {
     event.preventDefault();
     const listOfNames = persons.map((person) => person.name);
-    console.log(listOfNames);
+    //console.log(listOfNames);
     if (listOfNames.includes(newName)) {
       setNewName('');
-      return alert(newName + ' is already added to phonebook');
+      const updateNameWindow = window.confirm(
+        `${newName} is already added to the phonebook, replace the old number with a new one?`
+      );
+      if (updateNameWindow) {
+        const testIndex = persons.findIndex(
+          (person) => person.name === newName
+        );
+        console.log(persons[testIndex].id);
+        return personServices
+          .updatePerson(newName, newNumber, persons[testIndex].id)
+          .then((response) => {
+            console.log(response);
+          });
+      }
     }
-    console.log(newName);
     const nameObj = {
       name: newName,
       number: newNumber,
       id: persons.length + 1,
     };
-
     personServices.createPerson(nameObj).then((response) => {
       setPersons(persons.concat(response));
     });
-
+    setErrorMessage(`${newName} was added to the phonebook`);
+    setTimeout(() => {
+      setErrorMessage(null);
+    }, 5000);
     //setPersons(persons.concat(nameObj));
     setNewName('');
     setNewNumber('');
@@ -65,6 +98,7 @@ const App = () => {
   return (
     <div>
       <Header />
+      <Notification message={errorMessage} />
       <Search search={search} handleSearchChange={handleSearchChange} />
       <PersonForm
         newName={newName}
